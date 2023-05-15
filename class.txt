@@ -1,0 +1,2 @@
+className=com.itheima.stream.ReflectDemo.Student
+methodName=study
