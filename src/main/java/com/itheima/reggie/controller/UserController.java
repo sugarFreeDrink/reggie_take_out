@@ -10,6 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.embedded.undertow.UndertowWebServer;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.jws.soap.SOAPBinding;
 import javax.servlet.http.HttpSession;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 
 @RestController
@@ -27,6 +30,9 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
 
     @PostMapping("/sendMsg")
     public R<String> sendMsg(@RequestBody User user, HttpSession session){
@@ -42,7 +48,11 @@ public class UserController {
          //   SMSUtils.sendMessage("个人交流学习",phone,"SMS_276296391",code);
 
             //保存生成的验证码到Session
-            session.setAttribute(phone,code);
+          //  session.setAttribute(phone,code);
+
+            //将生成的验证码缓存到Redis 中，并且设置有效期五分钟
+            stringRedisTemplate.opsForValue().set(phone,code,3, TimeUnit.MINUTES);
+
             return  R.success("手机验证码短信发送成功");
 
         }
@@ -66,7 +76,11 @@ public class UserController {
 
         //从session中获取保存的验证码进行比对
         Object codeInSession = session.getAttribute(phone);
-        if (codeInSession !=null && codeInSession.equals(code)){
+
+        //从Redis中获取缓存的验证码
+        Object codeInRedis =  stringRedisTemplate.opsForValue().get(phone);
+
+        if (codeInRedis !=null && codeInRedis.equals(code)){
             //比对成功则登录成功
             LambdaQueryWrapper<User> lambdaQueryWrapper =new LambdaQueryWrapper<>();
             lambdaQueryWrapper.eq(User::getPhone,phone);
@@ -79,6 +93,9 @@ public class UserController {
                 userService.save(user);
             }
             session.setAttribute("user",user.getId());
+            //如果用户登录成功 删除缓存的验证码
+            stringRedisTemplate.delete(phone);
+
             return  R.success(user);
         }
 
