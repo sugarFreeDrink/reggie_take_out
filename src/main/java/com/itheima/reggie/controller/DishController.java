@@ -1,6 +1,9 @@
 package com.itheima.reggie.controller;
 
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.ISqlSegment;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -19,6 +22,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -42,6 +46,9 @@ public class DishController {
 
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     @PostMapping
     public R<String> save(@RequestBody DishDto dishDto){
@@ -84,15 +91,14 @@ public class DishController {
     }*/
 
     @GetMapping("/list")
-    public R<List<DishDto>> list( Dish dish){
+    public R<List<DishDto>> list(Dish dish){
 
         List<DishDto> dishDtoList =null;
 
         String key = "dish_" +dish.getCategoryId()+"_"+dish.getStatus(); //dish_id_1
         //从redis中获取缓存数据
-        String s = stringRedisTemplate.opsForValue().get(key);
-        Object o=s;
-        dishDtoList = (List<DishDto>) o;
+        dishDtoList = (List<DishDto>) redisTemplate.opsForValue().get(key);
+        //dishDtoList=JSON.parseArray( redisTemplate.opsForValue().get(key).toString(),DishDto.class);
 
         //如果存在 直接返回，无需查询数据
         if (dishDtoList !=null){
@@ -130,7 +136,7 @@ public class DishController {
             return dishDto;
         }).collect(Collectors.toList());
         //查询到的数据缓存到redis
-        stringRedisTemplate.opsForValue().set(key, String.valueOf(dishDtoList),10, TimeUnit.MINUTES);
+        redisTemplate.opsForValue().set(key,dishDtoList,10, TimeUnit.MINUTES);
 
         return R.success(dishDtoList);
     }
