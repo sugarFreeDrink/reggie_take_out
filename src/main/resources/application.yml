@@ -12,14 +12,14 @@ spring:
       master:
         type: com.alibaba.druid.pool.DruidDataSource
         driver-class-name: com.mysql.cj.jdbc.Driver
-        url: jdbc:mysql://172.19.234.70:3306/reggie?characterEncoding=utf-8
+        url: jdbc:mysql://172.30.150.214:3306/reggie?characterEncoding=utf-8&useSSL=false
         username: root
         password: root
       # 从数据源
       slave:
         type: com.alibaba.druid.pool.DruidDataSource
         driver-class-name: com.mysql.cj.jdbc.Driver
-        url: jdbc:mysql://172.19.230.182:3306/reggie?characterEncoding=utf-8
+        url: jdbc:mysql://172.30.151.150:3306/reggie?characterEncoding=utf-8&useSSL=false
         username: root
         password: root
     masterslave:
